@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dog Walk Tracker</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d1117; color:#e6edf3; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:30px 20px; -webkit-tap-highlight-color:transparent; }
+h1 { font-size:1.6rem; margin-bottom:4px; letter-spacing:1px; }
+.sub { color:#8b949e; font-size:0.85rem; margin-bottom:24px; }
+.legend { display:flex; gap:20px; margin-bottom:20px; align-items:center; flex-wrap:wrap; justify-content:center; }
+.legend-item { display:flex; align-items:center; gap:8px; font-size:0.9rem; }
+.legend-item .sw { width:18px; height:18px; border-radius:4px; flex-shrink:0; }
+.legend-item input { background:transparent; border:none; border-bottom:1px dashed #8b949e; color:#e6edf3; font-size:0.9rem; width:110px; outline:none; padding:2px 0; }
+.legend-item input:focus { border-bottom-color:#58a6ff; }
+.stats { display:flex; gap:32px; margin-bottom:20px; font-size:1rem; font-weight:600; flex-wrap:wrap; justify-content:center; }
+.stats .sb { color:#58a6ff; }
+.stats .sg { color:#d4a017; }
+.stats .sbo { color:#8bc78b; }
+.stats span.n { font-size:1.4rem; margin-right:4px; }
+.bar-c { width:100%; max-width:480px; margin-bottom:24px; height:28px; border-radius:8px; overflow:hidden; display:flex; background:#161b22; }
+.bar-b { background:#58a6ff; height:100%; transition:width 0.4s; }
+.bar-g { background:#d4a017; height:100%; transition:width 0.4s; }
+.ysel { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+.ysel button { background:#161b22; color:#8b949e; border:1px solid #30363d; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:0.85rem; }
+.ysel button.act { background:#21262d; color:#e6edf3; border-color:#58a6ff; }
+.ysel button:hover { color:#e6edf3; }
+.gc { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; max-width:960px; }
+.mb { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.mn { font-size:0.72rem; color:#8b949e; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
+.mg { display:grid; grid-template-columns:repeat(7,18px); grid-auto-rows:18px; gap:3px; }
+.d { width:18px; height:18px; border-radius:3px; background:#161b22; cursor:pointer; transition:transform 0.1s,background 0.15s; position:relative; }
+.d:hover { transform:scale(1.35); z-index:10; }
+@media(pointer:coarse){.d:hover{transform:none;}}
+.d.e { visibility:hidden; cursor:default; }
+.d.f { opacity:0.25; }
+.d.t { outline:2px solid #e6edf3; outline-offset:1px; }
+.d.blue { background:#58a6ff; }
+.d.gold { background:#d4a017; }
+.d.both { background:linear-gradient(135deg,#58a6ff 50%,#d4a017 50%); }
+.tt { position:fixed; background:#1c2128; border:1px solid #30363d; padding:6px 10px; border-radius:6px; font-size:0.78rem; pointer-events:none; display:none; z-index:100; white-space:nowrap; }
+.streak { display:flex; gap:24px; margin-bottom:16px; font-size:0.82rem; color:#8b949e; flex-wrap:wrap; justify-content:center; }
+.ft { color:#484f58; font-size:0.7rem; margin-top:24px; text-align:center; }
+</style>
+</head>
+<body>
+<h1>Dog Walk Tracker</h1>
+<p class="sub">Tap para registrar — ciclo: Azul → Dorado → Ambos → Vacio</p>
+<div class="legend">
+  <div class="legend-item"><div class="sw" style="background:#58a6ff"></div><input id="nb" placeholder="Persona 1" maxlength="20"></div>
+  <div class="legend-item"><div class="sw" style="background:#d4a017"></div><input id="ng" placeholder="Persona 2" maxlength="20"></div>
+  <div class="legend-item"><div class="sw" style="background:linear-gradient(135deg,#58a6ff 50%,#d4a017 50%)"></div><span style="color:#8b949e">Ambos</span></div>
+</div>
+<div class="stats" id="st"></div>
+<div class="bar-c"><div class="bar-b" id="bb"></div><div class="bar-g" id="bg"></div></div>
+<div class="streak" id="sk"></div>
+<div class="ysel" id="ys"></div>
+<div class="gc" id="gr"></div>
+<div class="tt" id="tp"></div>
+<p class="ft">Datos sincronizados en el servidor</p>
+<script>
+var MES=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+var ST=["","blue","gold","both"];
+var yr=new Date().getFullYear(),data={};
+var q=function(id){return document.getElementById(id);};
+
+function load(){
+  fetch("/api/data/"+yr).then(function(r){return r.json();}).then(function(d){data=d;grid();stats();}).catch(function(){});
+  fetch("/api/names").then(function(r){return r.json();}).then(function(n){q("nb").value=n.blue||"";q("ng").value=n.gold||"";stats();}).catch(function(){});
+}
+
+function save(){fetch("/api/data/"+yr,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});}
+function saveN(){fetch("/api/names",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({blue:q("nb").value,gold:q("ng").value})});}
+
+function dk(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function isT(d){var t=new Date();return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth()&&d.getDate()===t.getDate();}
+function isF(d){var t=new Date();t.setHours(0,0,0,0);return d>t;}
+
+function stats(){
+  var b=0,g=0,bo=0;
+  for(var k in data){var v=data[k];if(v==="blue")b++;else if(v==="gold")g++;else if(v==="both"){bo++;b++;g++;}}
+  var bn=q("nb").value||"Azul",gn=q("ng").value||"Dorado";
+  q("st").innerHTML="<div class=sb><span class=n>"+b+"</span>"+bn+"</div>"+"<div class=sg><span class=n>"+g+"</span>"+gn+"</div>"+"<div class=sbo><span class=n>"+bo+"</span>ambos</div>";
+  var tot=b+g||1;
+  q("bb").style.width=(b/tot*100)+"%";
+  q("bg").style.width=(g/tot*100)+"%";
+  var today=new Date();today.setHours(0,0,0,0);
+  var sb=0,dd=new Date(today);while(true){var v2=data[dk(dd)];if(v2==="blue"||v2==="both")sb++;else break;dd.setDate(dd.getDate()-1);}
+  var sg2=0;dd=new Date(today);while(true){var v3=data[dk(dd)];if(v3==="gold"||v3==="both")sg2++;else break;dd.setDate(dd.getDate()-1);}
+  q("sk").innerHTML="Racha "+bn+": <b>"+sb+"</b> dias &nbsp;|&nbsp; Racha "+gn+": <b>"+sg2+"</b> dias";
+}
+
+function yearSel(){
+  var c=q("ys");c.innerHTML="";
+  var ty=new Date().getFullYear();
+  for(var y=ty-2;y<=ty+1;y++){
+    var btn=document.createElement("button");btn.textContent=y;
+    if(y===yr)btn.className="act";
+    btn.onclick=(function(yy){return function(){yr=yy;load();yearSel();};})(y);
+    c.appendChild(btn);
+  }
+}
+
+function grid(){
+  var g=q("gr");g.innerHTML="";
+  for(var m=0;m<12;m++){
+    var bl=document.createElement("div");bl.className="mb";
+    var lb=document.createElement("div");lb.className="mn";lb.textContent=MES[m];bl.appendChild(lb);
+    var mg=document.createElement("div");mg.className="mg";
+    var fd=new Date(yr,m,1),sd=fd.getDay();sd=sd===0?6:sd-1;
+    for(var i=0;i<sd;i++){var em=document.createElement("div");em.className="d e";mg.appendChild(em);}
+    var dim=new Date(yr,m+1,0).getDate();
+    for(var d=1;d<=dim;d++){
+      var dt=new Date(yr,m,d),key=dk(dt);
+      var el=document.createElement("div");el.className="d";
+      if(data[key])el.classList.add(data[key]);
+      if(isT(dt))el.classList.add("t");
+      if(isF(dt))el.classList.add("f");
+      el.dataset.key=key;el.dataset.lb=d+" "+MES[m]+" "+yr;
+      el.addEventListener("click",(function(dt2,k2,el2){return function(){
+        var cur=data[k2]||"",idx=ST.indexOf(cur),nx=ST[(idx+1)%ST.length];
+        if(nx)data[k2]=nx;else delete data[k2];
+        el2.className="d"+(nx?" "+nx:"")+(isT(dt2)?" t":"")+(isF(dt2)?" f":"");
+        save();stats();
+      };})(dt,key,el));
+      el.addEventListener("mouseenter",(function(k2,el2){return function(ev){
+        var tt=q("tp"),s=data[k2]||"";
+        var bn=q("nb").value||"Azul",gn=q("ng").value||"Dorado";
+        var sl=s==="blue"?bn:s==="gold"?gn:s==="both"?bn+" + "+gn:"Sin registro";
+        tt.textContent=el2.dataset.lb+" — "+sl;
+        tt.style.display="block";tt.style.left=ev.clientX+12+"px";tt.style.top=ev.clientY-30+"px";
+      };})(key,el));
+      el.addEventListener("mouseleave",function(){q("tp").style.display="none";});
+      mg.appendChild(el);
+    }
+    bl.appendChild(mg);g.appendChild(bl);
+  }
+}
+
+q("nb").addEventListener("input",function(){saveN();stats();});
+q("ng").addEventListener("input",function(){saveN();stats();});
+yearSel();load();
+</script>
+</body>
+</html>
