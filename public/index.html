@@ -178,7 +178,7 @@ function stats(){
   var bn=q("nb").value||"Azul",gn=q("ng").value||"Dorado";
   var s=calcStreaks();
   var crownB=b>g?" 👑":"",crownG=g>b?" 👑":"";
-  var fireB=s.curB>0?" 🔥":"",fireG=s.curG>0?" 🔥":"";
+  var fireB=s.curB>=2?" 🔥":"",fireG=s.curG>=2?" 🔥":"";
   q("st").innerHTML="<div class=sb><span class=n>"+b+"</span>"+bn+crownB+fireB+"</div><div class=sg><span class=n>"+g+"</span>"+gn+crownG+fireG+"</div>";
   q("sk").innerHTML="Mejor racha: "+bn+" <b>"+s.bestB+"</b>d | "+gn+" <b>"+s.bestG+"</b>d";
   var tot=b+g||1;
