@@ -24,9 +24,9 @@ h1{font-size:1.5rem;margin-bottom:4px;letter-spacing:1px;}
 .stats .sb{color:#58a6ff;}
 .stats .sg{color:#d4a017;}
 .stats span.n{font-size:1.4rem;margin-right:4px;}
-.bar-c{width:100%;max-width:420px;margin-bottom:20px;height:24px;border-radius:8px;overflow:hidden;display:flex;background:#161b22;}
-.bar-b{background:#58a6ff;height:100%;transition:width 0.4s;}
-.bar-g{background:#d4a017;height:100%;transition:width 0.4s;}
+.bar-c{width:28px;height:180px;margin-bottom:20px;border-radius:8px;overflow:hidden;display:flex;flex-direction:column-reverse;background:#161b22;}
+.bar-b{background:#58a6ff;width:100%;transition:height 0.4s;}
+.bar-g{background:#d4a017;width:100%;transition:height 0.4s;}
 .ysel{display:flex;gap:6px;margin-bottom:14px;}
 .ysel button{background:#161b22;color:#8b949e;border:1px solid #30363d;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.85rem;}
 .ysel button.act{background:#21262d;color:#e6edf3;border-color:#58a6ff;}
@@ -168,8 +168,8 @@ function stats(){
   q("st").innerHTML="<div class=sb><span class=n>"+b+"</span>"+bn+crownB+fireB+"</div><div class=sg><span class=n>"+g+"</span>"+gn+crownG+fireG+"</div>";
   q("sk").innerHTML="Mejor racha: "+bn+" <b>"+s.bestB+"</b>d | "+gn+" <b>"+s.bestG+"</b>d";
   var tot=b+g||1;
-  q("bb").style.width=(b/tot*100)+"%";
-  q("bg").style.width=(g/tot*100)+"%";
+  q("bb").style.height=(b/tot*100)+"%";
+  q("bg").style.height=(g/tot*100)+"%";
 }
 
 function yearSel(){
