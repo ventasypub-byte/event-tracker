@@ -121,23 +121,35 @@ function isF(d){var t=new Date();t.setHours(0,0,0,0);return d>t;}
 
 function calcStreaks(){
   var today=dk(new Date());
-  // current streaks: must have event TODAY, then count consecutive days back
-  var todayEvts=data[today]||[];
-  var todayB=false,todayG=false;
-  for(var t=0;t<todayEvts.length;t++){if(todayEvts[t].value==="blue")todayB=true;if(todayEvts[t].value==="gold")todayG=true;}
+  // current streaks: find last event day per person, count consecutive back
+  // streak alive only if last event is today or yesterday
   var csB=0,csG=0;
-  if(todayB||todayG){
-    var d2=new Date();d2.setHours(0,0,0,0);
-    var doneB=!todayB,doneG=!todayG;
-    while(!doneB||!doneG){
-      var k2=dk(d2),evts=data[k2]||[];
-      var hasB=false,hasG=false;
-      for(var i=0;i<evts.length;i++){if(evts[i].value==="blue")hasB=true;if(evts[i].value==="gold")hasG=true;}
-      if(!doneB){if(hasB)csB++;else doneB=true;}
-      if(!doneG){if(hasG)csG++;else doneG=true;}
-      if(doneB&&doneG)break;
-      d2.setDate(d2.getDate()-1);
-      if(dk(d2)<START)break;
+  var allKeys=Object.keys(data).filter(function(k){return k>=START;}).sort();
+  var lastB="",lastG="";
+  for(var a=0;a<allKeys.length;a++){
+    var ae=data[allKeys[a]];
+    for(var ai=0;ai<ae.length;ai++){if(ae[ai].value==="blue")lastB=allKeys[a];if(ae[ai].value==="gold")lastG=allKeys[a];}
+  }
+  var yesterday=new Date();yesterday.setHours(0,0,0,0);yesterday.setDate(yesterday.getDate()-1);
+  var ydk=dk(yesterday);
+  // blue streak
+  if(lastB>=ydk&&lastB!==""){
+    var db=new Date(lastB+"T00:00:00");
+    while(true){
+      var kb=dk(db),eb=data[kb]||[],hb=false;
+      for(var bi=0;bi<eb.length;bi++){if(eb[bi].value==="blue")hb=true;}
+      if(hb)csB++;else break;
+      db.setDate(db.getDate()-1);if(dk(db)<START)break;
+    }
+  }
+  // gold streak
+  if(lastG>=ydk&&lastG!==""){
+    var dg=new Date(lastG+"T00:00:00");
+    while(true){
+      var kg=dk(dg),eg=data[kg]||[],hg=false;
+      for(var gi=0;gi<eg.length;gi++){if(eg[gi].value==="gold")hg=true;}
+      if(hg)csG++;else break;
+      dg.setDate(dg.getDate()-1);if(dk(dg)<START)break;
     }
   }
   // best streaks (longest consecutive run)
