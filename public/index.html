@@ -70,7 +70,8 @@ function load(){
   fetch("/api/names").then(function(r){return r.json();}).then(function(n){q("nb").value=n.blue||"";q("ng").value=n.gold||"";stats();}).catch(function(){});
 }
 
-function save(){fetch("/api/data/"+yr,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});}
+function save(k,v){fetch("/api/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({year:yr,day:k,value:v})});}
+function rm(k){fetch("/api/event/"+yr+"/"+k,{method:"DELETE"});}
 function saveN(){fetch("/api/names",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({blue:q("nb").value,gold:q("ng").value})});}
 
 function dk(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -120,9 +121,9 @@ function grid(){
       el.dataset.key=key;el.dataset.lb=d+" "+MES[m]+" "+yr;
       el.addEventListener("click",(function(dt2,k2,el2){return function(){
         var cur=data[k2]||"",idx=ST.indexOf(cur),nx=ST[(idx+1)%ST.length];
-        if(nx)data[k2]=nx;else delete data[k2];
+        if(nx){data[k2]=nx;save(k2,nx);}else{delete data[k2];rm(k2);}
         el2.className="d"+(nx?" "+nx:"")+(isT(dt2)?" t":"")+(isF(dt2)?" f":"");
-        save();stats();
+        stats();
       };})(dt,key,el));
       el.addEventListener("mouseenter",(function(k2,el2){return function(ev){
         var tt=q("tp"),s=data[k2]||"";

@@ -1,29 +1,57 @@
 const express = require("express");
+const { createClient } = require("@supabase/supabase-js");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const RENDER_URL = process.env.RENDER_EXTERNAL_URL || "";
 
-// In-memory store (swap to Supabase later)
-let store = { _names: {} };
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
 
 app.use(express.json());
 app.use(express.static("public"));
 
-app.get("/api/data/:year", (req, res) => {
-  res.json(store[req.params.year] || {});
+app.get("/api/data/:year", async (req, res) => {
+  const { data, error } = await supabase
+    .from("events").select("day, value")
+    .eq("year", parseInt(req.params.year));
+  if (error) return res.status(500).json({ error: error.message });
+  const result = {};
+  data.forEach(r => { result[r.day] = r.value; });
+  res.json(result);
 });
 
-app.post("/api/data/:year", (req, res) => {
-  store[req.params.year] = req.body;
+app.post("/api/event", async (req, res) => {
+  const { year, day, value } = req.body;
+  const { error } = await supabase
+    .from("events").upsert({ year, day, value }, { onConflict: "year,day" });
+  if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
 });
 
-app.get("/api/names", (req, res) => {
-  res.json(store._names || {});
+app.delete("/api/event/:year/:day", async (req, res) => {
+  const { error } = await supabase
+    .from("events").delete()
+    .eq("year", parseInt(req.params.year))
+    .eq("day", req.params.day);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
 });
 
-app.post("/api/names", (req, res) => {
-  store._names = req.body;
+app.get("/api/names", async (req, res) => {
+  const { data, error } = await supabase
+    .from("config").select("value")
+    .eq("key", "names").single();
+  if (error) return res.json({ blue: "", gold: "" });
+  res.json(data.value);
+});
+
+app.post("/api/names", async (req, res) => {
+  const { error } = await supabase
+    .from("config").upsert({ key: "names", value: req.body }, { onConflict: "key" });
+  if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
 });
 
