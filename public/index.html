@@ -125,15 +125,16 @@ function calcStreaks(){
   allDays.sort();
   var bestB=0,bestG=0,curB=0,curG=0;
   var today=dk(new Date());
-  // current streaks (consecutive days ending today going backwards)
+  // current streaks (independent per person, consecutive days back from today)
   var d2=new Date();d2.setHours(0,0,0,0);
-  var csB=0,csG=0;
-  while(true){
+  var csB=0,csG=0,doneB=false,doneG=false;
+  while(!doneB||!doneG){
     var k2=dk(d2),evts=data[k2]||[];
     var hasB=false,hasG=false;
     for(var i=0;i<evts.length;i++){if(evts[i].value==="blue")hasB=true;if(evts[i].value==="gold")hasG=true;}
-    if(!hasB&&!hasG)break;
-    if(hasB)csB++;if(hasG)csG++;
+    if(!doneB){if(hasB)csB++;else doneB=true;}
+    if(!doneG){if(hasG)csG++;else doneG=true;}
+    if(doneB&&doneG)break;
     d2.setDate(d2.getDate()-1);
     if(dk(d2)<START)break;
   }
