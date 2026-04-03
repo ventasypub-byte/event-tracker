@@ -15,27 +15,34 @@ app.use(express.static("public"));
 
 app.get("/api/data/:year", async (req, res) => {
   const { data, error } = await supabase
-    .from("events").select("day, value")
-    .eq("year", parseInt(req.params.year));
+    .from("events").select("id, day, value")
+    .eq("year", parseInt(req.params.year))
+    .order("id");
   if (error) return res.status(500).json({ error: error.message });
   const result = {};
-  data.forEach(r => { result[r.day] = r.value; });
+  data.forEach(r => {
+    if (!result[r.day]) result[r.day] = [];
+    result[r.day].push({ id: r.id, value: r.value });
+  });
   res.json(result);
 });
 
 app.post("/api/event", async (req, res) => {
   const { year, day, value } = req.body;
-  const { error } = await supabase
-    .from("events").upsert({ year, day, value }, { onConflict: "year,day" });
+  const { count } = await supabase
+    .from("events").select("id", { count: "exact", head: true })
+    .eq("year", year).eq("day", day);
+  if (count >= 3) return res.status(400).json({ error: "Max 3 per day" });
+  const { data, error } = await supabase
+    .from("events").insert({ year, day, value }).select("id").single();
   if (error) return res.status(500).json({ error: error.message });
-  res.json({ ok: true });
+  res.json({ ok: true, id: data.id });
 });
 
-app.delete("/api/event/:year/:day", async (req, res) => {
+app.delete("/api/event/:id", async (req, res) => {
   const { error } = await supabase
     .from("events").delete()
-    .eq("year", parseInt(req.params.year))
-    .eq("day", req.params.day);
+    .eq("id", parseInt(req.params.id));
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
 });
