@@ -120,54 +120,24 @@ function isT(d){var t=new Date();return d.getFullYear()===t.getFullYear()&&d.get
 function isF(d){var t=new Date();t.setHours(0,0,0,0);return d>t;}
 
 function calcStreaks(){
-  var today=dk(new Date());
-  // current streaks: find last event day per person, count consecutive back
-  // streak alive only if last event is today or yesterday
-  var csB=0,csG=0;
-  var allKeys=Object.keys(data).filter(function(k){return k>=START;}).sort();
-  var lastB="",lastG="";
-  for(var a=0;a<allKeys.length;a++){
-    var ae=data[allKeys[a]];
-    for(var ai=0;ai<ae.length;ai++){if(ae[ai].value==="blue")lastB=allKeys[a];if(ae[ai].value==="gold")lastG=allKeys[a];}
-  }
-  var yesterday=new Date();yesterday.setHours(0,0,0,0);yesterday.setDate(yesterday.getDate()-1);
-  var ydk=dk(yesterday);
-  // blue streak
-  if(lastB>=ydk&&lastB!==""){
-    var db=new Date(lastB+"T00:00:00");
-    while(true){
-      var kb=dk(db),eb=data[kb]||[],hb=false;
-      for(var bi=0;bi<eb.length;bi++){if(eb[bi].value==="blue")hb=true;}
-      if(hb)csB++;else break;
-      db.setDate(db.getDate()-1);if(dk(db)<START)break;
+  // flatten all events sorted by id (chronological)
+  var all=[];
+  for(var day in data){var ev=data[day];for(var i=0;i<ev.length;i++)all.push(ev[i]);}
+  all.sort(function(a,b){return a.id-b.id;});
+  // current streak: consecutive same-color events from the end
+  var csB=0,csG=0,streakColor="";
+  if(all.length>0){
+    streakColor=all[all.length-1].value;
+    for(var i=all.length-1;i>=0;i--){
+      if(all[i].value===streakColor){if(streakColor==="blue")csB++;else csG++;}
+      else break;
     }
   }
-  // gold streak
-  if(lastG>=ydk&&lastG!==""){
-    var dg=new Date(lastG+"T00:00:00");
-    while(true){
-      var kg=dk(dg),eg=data[kg]||[],hg=false;
-      for(var gi=0;gi<eg.length;gi++){if(eg[gi].value==="gold")hg=true;}
-      if(hg)csG++;else break;
-      dg.setDate(dg.getDate()-1);if(dk(dg)<START)break;
-    }
-  }
-  // best streaks (longest consecutive run)
-  var sorted=Object.keys(data).filter(function(k){return k>=START;}).sort();
-  var bsB=0,bsG=0,rB=0,rG=0,prev="";
-  for(var i=0;i<sorted.length;i++){
-    var k3=sorted[i],evts2=data[k3];
-    var hB=false,hG=false;
-    for(var j=0;j<evts2.length;j++){if(evts2[j].value==="blue")hB=true;if(evts2[j].value==="gold")hG=true;}
-    // check if consecutive day
-    var isConsec=false;
-    if(prev){
-      var pd=new Date(prev+"T00:00:00");pd.setDate(pd.getDate()+1);
-      isConsec=dk(pd)===k3;
-    }
-    if(hB){rB=isConsec||!prev?rB+1:1;if(rB>bsB)bsB=rB;}else{rB=0;}
-    if(hG){rG=isConsec||!prev?rG+1:1;if(rG>bsG)bsG=rG;}else{rG=0;}
-    prev=k3;
+  // best streaks: longest consecutive run per color
+  var bsB=0,bsG=0,rB=0,rG=0;
+  for(var j=0;j<all.length;j++){
+    if(all[j].value==="blue"){rB++;rG=0;if(rB>bsB)bsB=rB;}
+    else{rG++;rB=0;if(rG>bsG)bsG=rG;}
   }
   return{curB:csB,curG:csG,bestB:bsB,bestG:bsG};
 }
